@@ -10,5 +10,7 @@ be found in [public/assets/styles.css](https://github.com/psi-4ward/psitransfer/
 If you want to give PsiTransfer your own custom look and feel just edit the files in `public/html` and/or
 the `styles.css`. If you need to deliver assets like a custom logo put it into the `assets` folder.
 
+Restart PsiTransfer after editing static assets so newly rendered pages use the updated asset version.
+
 But consider: You have to adopt further changes on PsiTransfer updates. This sould not happen very often.
 
