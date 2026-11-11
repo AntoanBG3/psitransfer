@@ -5,7 +5,19 @@ This branch (`wizard`) is not meant to be merged upstream.
 
 ## What's different
 
-Only the look. The server, API and Vue logic are upstream's.
+Mostly the look; the server, API and Vue logic are upstream's, with two fixes:
+
+- Download passwords outside ASCII (Cyrillic, Japanese, ...) work. Browsers can't put them
+  in the `x-download-pass` header, so the download page sends them base64-encoded (UTF-8)
+  in `x-download-pass-b64` and the server decodes that. Stored passwords and ASCII requests
+  are unchanged, so existing buckets keep working. Upstream issue #329; PR #333 encoded the
+  stored password too, which would lock out existing buckets.
+  Test: `tests/integration/unicode-download-password.test.js`.
+- Icons spin and flip again. The webpack config drops Vue components' `<style>` blocks
+  (upstream PR #315), so vue-awesome's icon CSS is restated in `styles.css`. PR #315 itself
+  isn't taken because it would also bring back the Bootstrap-era component styles.
+
+The look:
 
 - `public/assets/styles.css` replaces the Bootstrap 3 build with a Win98 theme that
   matches the home server's other pages. It maps the Bootstrap class names the Vue

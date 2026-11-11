@@ -191,7 +191,13 @@
         const xhr = new XMLHttpRequest();
         xhr.open('GET', this.sid + '.json');
         if(this.password) {
-          xhr.setRequestHeader('x-download-pass', this.password);
+          // headers only carry Latin-1, so send anything beyond ASCII base64-encoded
+          if (/^[\x20-\x7e]*$/.test(this.password)) {
+            xhr.setRequestHeader('x-download-pass', this.password);
+          } else {
+            const bytes = new TextEncoder().encode(this.password);
+            xhr.setRequestHeader('x-download-pass-b64', btoa(String.fromCharCode(...bytes)));
+          }
         }
         xhr.onload = () => {
           if (xhr.status === 200) {
