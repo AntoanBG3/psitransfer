@@ -1,0 +1,87 @@
+name: wizard image
+
+# Builds ghcr.io/<owner>/psitransfer:wizard for the "wizard" home server:
+# upstream psi-4ward/psitransfer master merged into this branch (Win98 theme).
+# Runs weekly so upstream fixes arrive without a manual merge. A merge conflict
+# fails the run; resolve it locally with `git merge upstream/master` and push.
+
+on:
+  push:
+    branches: [wizard]
+  schedule:
+    - cron: "41 3 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: wizard-image
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  UPSTREAM: https://github.com/psi-4ward/psitransfer.git
+  UPSTREAM_REF: master
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Merge upstream
+        id: merge
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --no-tags "$UPSTREAM" "$UPSTREAM_REF"
+          before=$(git rev-parse HEAD)
+          if ! git merge --no-edit FETCH_HEAD; then
+            git merge --abort
+            echo "::error::upstream $UPSTREAM_REF no longer merges cleanly into wizard"
+            exit 1
+          fi
+          if [ "$(git rev-parse HEAD)" != "$before" ]; then
+            git push origin HEAD:wizard
+            echo "merged upstream $(git rev-parse --short FETCH_HEAD)"
+          fi
+          echo "upstream=$(git rev-parse --short FETCH_HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Test
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+
+      - name: Image metadata
+        id: meta
+        run: |
+          owner=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          echo "image=${REGISTRY}/${owner}/psitransfer" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ steps.merge.outputs.upstream }}-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:wizard
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=PsiTransfer (upstream ${{ env.UPSTREAM_REF }}) with a Win98 theme
+            org.opencontainers.image.licenses=BSD-2-Clause
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,4 +1,27 @@
-footer.footer
-  .container.text-right
-    span.text-muted
-      a(href='https://github.com/psi-4ward/psitransfer' target='_blank') Powered by PsiTransfer
+.window#help-window(hidden role='dialog' aria-labelledby='help-title')
+  .title-bar
+    .title-bar-text#help-title Help
+    .title-bar-controls
+      button#help-close(type='button' aria-label='Close')
+  .window-body
+    p To send files, enter the upload password, add the files, choose how long to keep them and press Upload. Anyone with the link can download them; add a password if they need one.
+    p Files are deleted when they expire. A one-time link stops working after the first download.
+    p
+      | Powered by
+      |
+      a(href='https://github.com/psi-4ward/psitransfer' target='_blank' rel='noopener') PsiTransfer
+      |  (BSD-2-Clause) &middot;
+      |
+      a(href='https://github.com/AntoanBG3/psitransfer/tree/wizard' target='_blank' rel='noopener') source
+      | .
+    .buttons
+      button#help-ok(type='button') OK
+script.
+  (function () {
+    var help = document.getElementById('help-window');
+    function show(open) { help.hidden = !open; if (open) document.getElementById('help-ok').focus(); }
+    document.getElementById('help-button').addEventListener('click', function () { show(help.hidden); });
+    document.getElementById('help-close').addEventListener('click', function () { show(false); });
+    document.getElementById('help-ok').addEventListener('click', function () { show(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !help.hidden) show(false); });
+  })();
