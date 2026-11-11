@@ -279,6 +279,29 @@ test('zip downloads store already-compressed files and deflate the rest', async 
   await new Promise(r => setTimeout(r, 200));
 });
 
+test('large files are judged by their bytes, whatever they are called', async () => {
+  const packed = require('crypto').randomBytes(2 << 20);
+  const text = Buffer.from('compress me '.repeat(200000));
+  await upload('sniffzip', 'backup.bin', packed);
+  await upload('sniffzip', 'dump.bin', text);
+  const list = JSON.parse((await request('GET', '/sniffzip.json')).body);
+  const zip = await request('GET', `/files/sniffzip++${ list.archiveToken }.zip`);
+  assert.strictEqual(zip.status, 200);
+  assert.deepStrictEqual(zipEntries(zip.body.subarray(0, 100)), { 'backup.bin': 0 });
+  assert.ok(zip.body.includes(packed), 'the packed file is stored as-is');
+  assert.ok(zip.body.length < packed.length + text.length / 10, 'the text file is deflated');
+
+  await upload('snifftgz', 'backup.bin', packed);
+  const tlist = JSON.parse((await request('GET', '/snifftgz.json')).body);
+  const tgz = await request('GET', `/files/snifftgz++${ tlist.archiveToken }.tar.gz`);
+  assert.strictEqual(tgz.status, 200);
+  // level 0 writes stored blocks: 5 bytes of header per 64KB, no deflate attempt
+  assert.ok(tgz.body.length > packed.length, 'a bucket of packed data is not deflated again');
+  assert.ok(tgz.body.includes(packed.subarray(0, 60000)));
+  assert.ok(require('zlib').gunzipSync(tgz.body).includes(packed));
+  await new Promise(r => setTimeout(r, 200));
+});
+
 test('tar.gz packs a mostly-media bucket without compression and compresses the rest', async () => {
   const text = Buffer.from('compress me '.repeat(10000));
   await upload('tgzmedia', 'clip.mp4', text);
