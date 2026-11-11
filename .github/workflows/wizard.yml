@@ -45,8 +45,10 @@ jobs:
             exit 1
           fi
           if [ "$(git rev-parse HEAD)" != "$before" ]; then
-            git push origin HEAD:wizard
             echo "merged upstream $(git rev-parse --short FETCH_HEAD)"
+            # GITHUB_TOKEN may not push commits that touch .github/workflows, so the
+            # image is built from the merge either way and the branch catches up later
+            git push origin HEAD:wizard || echo "::warning::could not push the merge to wizard; run git merge upstream/master locally and push"
           fi
           echo "upstream=$(git rev-parse --short FETCH_HEAD)" >> "$GITHUB_OUTPUT"
 

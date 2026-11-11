@@ -20,7 +20,10 @@ Only the look. The server, API and Vue logic are upstream's.
 `.github/workflows/wizard.yml` merges upstream `master` into this branch, runs the
 tests and pushes `ghcr.io/antoanbg3/psitransfer:wizard` (plus an immutable
 `<upstream sha>-<fork sha>` tag for rollbacks). It runs on every push, weekly on
-Monday and on demand. If the merge conflicts the run fails; merge by hand:
+Monday and on demand. It pushes a clean merge back to this branch when it can; the
+Actions token cannot push upstream commits that touch `.github/workflows`, so then it
+builds the merge anyway and leaves a warning. If the merge conflicts the run fails.
+Either way, merge by hand:
 
 ```sh
 git fetch upstream && git merge upstream/master && git push
