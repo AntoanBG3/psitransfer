@@ -27,15 +27,18 @@ Speed (measured on wizard against the upstream build, see `tests/integration/wiz
   load in parallel with the scripts instead of after them (upload page 578 -> 360ms first
   visit, 548 -> 227ms repeat, at 100ms per request).
 - No brute-force delay or argon2 run for requests that carry no password: a protected
-  bucket shows its password prompt in ~3ms instead of ~530ms. With a password, the
-  per-file hashes are checked in parallel.
+  bucket shows its password prompt in ~3ms instead of ~530ms.
 - Zip downloads store photos, videos and archives instead of deflating them; tar.gz skips
   compression when most of the bucket is such files, and uses 1MB zlib chunks
   (zip 11 -> 290MB/s, tar.gz 11 -> 480MB/s, CPU for the test set 43s -> 2.6s).
-- Uploads use 50MB tus chunks instead of 5MB (10 -> 18MB/s through Cloudflare, whose
-  request limit is 100MB; an interrupted chunk keeps its received bytes and resumes).
-  The server's request timeout is an hour so a slow uplink can finish a chunk, and idle
-  connections stay open past cloudflared's 90s pool.
+- Upload chunks grow with the measured speed, from 5MB up to 50MB, so each takes ~20s
+  (5MB chunks ran at 10MB/s through Cloudflare, 50MB at 18MB/s). Cloudflare's 100s origin
+  timeout covers the whole streamed chunk (a 50MB chunk at 350KB/s got a 524), so fixed
+  big chunks would fail on slow uplinks; a failed chunk halves the size, and its received
+  bytes are kept. The server's request timeout is an hour (LAN uploads skip Cloudflare),
+  and idle connections stay open past cloudflared's 90s pool.
+- A wrong download password costs one argon2 check; a right one checks the other files'
+  hashes in parallel.
 
 The look:
 
