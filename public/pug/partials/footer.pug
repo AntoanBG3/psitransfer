@@ -16,12 +16,4 @@
       | .
     .buttons
       button#help-ok(type='button') OK
-script.
-  (function () {
-    var help = document.getElementById('help-window');
-    function show(open) { help.hidden = !open; if (open) document.getElementById('help-ok').focus(); }
-    document.getElementById('help-button').addEventListener('click', function () { show(help.hidden); });
-    document.getElementById('help-close').addEventListener('click', function () { show(false); });
-    document.getElementById('help-ok').addEventListener('click', function () { show(false); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !help.hidden) show(false); });
-  })();
+script(src='assets/wizard.js')

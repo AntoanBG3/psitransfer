@@ -76,15 +76,33 @@ h3, h4 { font-size: 11px; font-weight: bold; margin: 0 0 8px; }
   white-space: nowrap;
 }
 
+/* help opens over the page window, like a Win98 dialog over its parent */
 #help-window {
   position: fixed;
-  top: 50%;
+  top: 96px;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   width: min(380px, calc(100vw - 32px));
   z-index: 1100;
 }
 #help-window .window-body { margin: 12px; }
+.help-open #main-window > .title-bar,
+.help-open .panel-primary > .panel-heading,
+.help-open .panel-info > .panel-heading {
+  background: linear-gradient(90deg, var(--title-off-a), var(--title-off-b));
+}
+.help-open #main-window > .title-bar .title-bar-text { color: var(--light); }
+
+/* a password prompt is a small dialog, not a full-width window */
+body[data-state=login] #main-window,
+body[data-state=locked] #main-window { max-width: 420px; }
+body[data-state=login] .well,
+body[data-state=locked] .well { max-width: none; margin-bottom: 0; }
+body[data-state=loading] .window-body { min-height: 120px; }
+
+/* nothing to start over from on a fresh upload page */
+.page-upload[data-state=empty] .btn-new-session,
+.page-upload[data-state=loading] .btn-new-session { display: none; }
 #help-window .buttons { display: flex; justify-content: flex-end; margin-top: 12px; }
 #help-window .buttons button { min-width: 88px; min-height: 28px; }
 
