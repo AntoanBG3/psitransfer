@@ -12,6 +12,11 @@ export function humanFileSize(fileSizeInBytes) {
   return Math.max(fileSizeInBytes, 0.01).toFixed(2) + byteUnits[i];
 }
 
+// Aim for short requests on slow links and fewer round trips on fast ones.
+const MIN_CHUNK = 5000000;
+const MAX_CHUNK = 50000000;
+const CHUNK_SECONDS = 20;
+
 let onOnlineHandler = null;
 let onOnlineHandlerAttached = false;
 
@@ -161,7 +166,7 @@ export default {
 
         const _File = file._File;
         const startTusUpload = () => {
-          new tus.Upload(_File, {
+          const tusUpload = new tus.Upload(_File, {
             uploadUrl: file._uploadUrl,
             metadata: {
               sid: state.sid,
@@ -175,7 +180,15 @@ export default {
               "x-passwd": rootState.config.uploadPass
             },
             parallelUploads: 1,
-            chunkSize: 5000000,
+            chunkSize: file._chunkSize || MIN_CHUNK,
+            // called on the options object, whose chunkSize tus reads for every chunk
+            onChunkComplete(chunkSize) {
+              const now = Date.now();
+              const seconds = Math.max((now - file._chunkStart) / 1000, 0.001);
+              file._chunkStart = now;
+              const next = Math.round(chunkSize / seconds * CHUNK_SECONDS);
+              this.chunkSize = file._chunkSize = Math.min(file._chunkLimit || MAX_CHUNK, Math.max(MIN_CHUNK, next));
+            },
             endpoint: state.uploadURI,
             storeFingerprintForResuming: false,
             retryDelays: null,
@@ -195,6 +208,9 @@ export default {
               }
               catch (e) {
               }
+              const status = error.originalResponse && error.originalResponse.getStatus();
+              const oversizedChunk = status === 413 && error.originalRequest.getMethod() === 'PATCH'
+                && file._chunkSize > MIN_CHUNK;
               // browser is offline
               if (!navigator.onLine) {
                 commit('ERROR', 'You are offline. Your uploads will resume as soon as you are back online.', { root: true });
@@ -205,8 +221,7 @@ export default {
                 }
               }
               // Client Error
-              else if (error && error.originalResponse && error.originalResponse._xhr &&
-                error.originalResponse._xhr.status >= 400 && error.originalResponse._xhr.status < 500) {
+              else if (status >= 400 && status < 500 && !oversizedChunk) {
                 commit('UPDATE_FILE', {
                   file, data: {
                     error: jsonResMessage || error.message || error.toString()
@@ -226,6 +241,9 @@ export default {
                   return;
                 }
 
+                // the link may have slowed down or a chunk hit a proxy timeout: smaller chunks
+                file._chunkSize = Math.max(MIN_CHUNK, Math.floor((file._chunkSize || MIN_CHUNK) / 2));
+                if (oversizedChunk) file._chunkLimit = file._chunkSize;
                 file._retryDelay = Math.min(file._retryDelay * 1.7, 10000);
                 file._retries++;
                 if (console) console.log(error.message || error.toString(), '; will retry in', file._retryDelay, 'ms');
@@ -254,7 +272,9 @@ export default {
               });
               checkDone();
             }
-          }).start();
+          });
+          file._chunkStart = Date.now();
+          tusUpload.start();
         }
         startTusUpload();
       });
