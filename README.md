@@ -104,6 +104,7 @@ DEBUG=psitransfer:* npm start
 ## Side notes
 
 * **There is no (end-to-end) payload encryption (yet)**.
+* ZIP stores recognized compressed formats such as JPEG and MP4 without recompressing them. For tar.gz, if those files account for more than half of the bucket by size, the entire archive uses gzip level 0. At or below half, gzip compresses the archive normally.
 * `Download all as ZIP` does not support resuming the download.
 
 :star2: Contribution is highly welcome :metal:
