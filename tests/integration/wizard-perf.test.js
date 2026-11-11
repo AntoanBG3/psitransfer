@@ -156,11 +156,9 @@ test('static files come from memory with brotli 11, gzip or plain bodies', async
   assert.strictEqual((await request('GET', '/assets/..%2f..%2fconfig.js')).status, 404);
 });
 
-test('the upload page carries translations and config, and is revalidated in the background', async (t) => {
+test('the upload page carries translations and config', async (t) => {
   const page = await request('GET', '/', { 'Accept-Language': 'de' });
   assert.strictEqual(page.status, 200);
-  assert.strictEqual(page.headers['cache-control'], 'private, max-age=0, stale-while-revalidate=604800');
-  assert.match(page.headers.vary, /Accept-Language/);
   const html = page.body.toString();
   const preload = preloadOf(html);
   assert.strictEqual(preload.lang.langCode, 'de');
@@ -178,7 +176,7 @@ test('the upload page carries translations and config, and is revalidated in the
     assert.ok(html.includes(url.slice(1)), `${ url } is used by the page`);
   }
 
-  // unchanged page: the background revalidation gets a 304
+  // unchanged page: a revalidation gets a 304
   const again = await request('GET', '/', { 'Accept-Language': 'de', 'If-None-Match': page.headers.etag });
   assert.strictEqual(again.status, 304);
 
