@@ -3,9 +3,6 @@ html(lang='en')
   head
     include partials/head
     include partials/head_custom
-    //- wizard: fetch the app's JSON in parallel with its scripts instead of after them
-    link(href='lang.json' rel='preload' as='fetch' crossorigin)
-    link(href='config.json' rel='preload' as='fetch' crossorigin)
   body.page-upload
     #dropHelper
     include partials/window
@@ -14,4 +11,6 @@ html(lang='en')
     include partials/footer
     script(src=appUrl + '/common.js')
     script PSITRANSFER_UPLOAD_PATH = '#{uploadAppPath}';
+    //- wizard: translations and the first config answer, so the app renders without fetching them
+    script!= 'PSITRANSFER_PRELOAD = ' + preload + ';'
     script(src=appUrl + '/upload.js')

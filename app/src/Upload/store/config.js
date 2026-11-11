@@ -19,6 +19,21 @@ export default {
 
   actions: {
     fetch({commit, state}) {
+      // wizard: before a password is entered the answer is already in the page (upload.pug)
+      const preload = window.PSITRANSFER_PRELOAD;
+      if (preload && !state.uploadPass) {
+        if (preload.config) {
+          commit('SET', preload.config);
+          commit('upload/RETENTION', preload.config.defaultRetention, {root:true});
+          return Promise.resolve();
+        }
+        if (preload.uploadPassRequired) {
+          commit('SET', {uploadPassRequired: true, uploadPass: null});
+          const e = new Error('Password required');
+          e.code = "PWDREQ";
+          return Promise.reject(e);
+        }
+      }
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('GET', 'config.json');

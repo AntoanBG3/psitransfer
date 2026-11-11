@@ -6,20 +6,23 @@ import {httpGet} from "./common/util";
 
 Vue.component('icon', Icon);
 
+// wizard: the page carries the translations and the first config answer (upload.pug)
+const preload = window.PSITRANSFER_PRELOAD || {};
+
 new Vue({
   el: '#upload',
   data: {
     baseURI: document.head.getElementsByTagName('base')[0].href.replace(/\/$/),
     configFetched: false,
-    lang: {},
+    lang: preload.lang || {},
   },
   store,
   render: h => h(Upload),
   async beforeCreate() {
     // Fetch translations
     try {
-      this.lang = await httpGet('lang.json');
-      this.$store.commit('LANG', this.lang);
+      if (!preload.lang) this.lang = await httpGet('lang.json');
+      this.$store.commit('LANG', preload.lang || this.lang);
     } catch (e) {
       alert(e);
     }

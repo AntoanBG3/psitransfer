@@ -12,16 +12,19 @@ import Icon from 'vue-awesome/components/Icon'
 
 Vue.component('icon', Icon);
 
+// wizard: the page carries the translations (download.pug)
+const preload = window.PSITRANSFER_PRELOAD || {};
+
 new Vue({
   el: '#download',
   data: {
     baseURI: document.head.getElementsByTagName('base')[0].href.replace(/\/$/,''),
-    lang: {},
+    lang: preload.lang || {},
   },
   async beforeCreate() {
     // Fetch translations
     try {
-      this.lang = await httpGet('lang.json');
+      if (!preload.lang) this.lang = await httpGet('lang.json');
     }
     catch (e) {
       alert(e);

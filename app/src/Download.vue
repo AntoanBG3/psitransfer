@@ -187,6 +187,19 @@
         return !(value !== value || value === Infinity || value === -Infinity);
       },
 
+      showBucket(data) {
+        this.config = data.config;
+        this.archiveToken = data.archiveToken || '';
+        this.files = data.items.map(f => {
+          return Object.assign(f, {
+            downloaded: false,
+            previewType: getPreviewType(f, this.config.maxPreviewSize)
+          });
+        });
+        this.loading = false;
+        this.needsPassword = false;
+      },
+
       fetchBucket() {
         const xhr = new XMLHttpRequest();
         xhr.open('GET', this.sid + '.json');
@@ -202,17 +215,7 @@
         xhr.onload = () => {
           if (xhr.status === 200) {
             try {
-              const data = JSON.parse(xhr.responseText);
-              this.config = data.config;
-              this.archiveToken = data.archiveToken || '';
-              this.files = data.items.map(f => {
-                return Object.assign(f, {
-                  downloaded: false,
-                  previewType: getPreviewType(f, this.config.maxPreviewSize)
-                });
-              });
-              this.loading = false;
-              this.needsPassword = false;
+              this.showBucket(JSON.parse(xhr.responseText));
             }
             catch (e) {
               this.error = e.toString();
@@ -233,7 +236,17 @@
     },
 
     beforeMount() {
-      this.fetchBucket();
+      // wizard: the page carries the file list, or says that the bucket needs a password
+      // (download.pug); only an entered password is sent to the server
+      const preload = window.PSITRANSFER_PRELOAD || {};
+      if (preload.bucket) {
+        this.showBucket(preload.bucket);
+      } else if (preload.needsPassword) {
+        this.needsPassword = true;
+        this.loading = false;
+      } else {
+        this.fetchBucket();
+      }
     }
   }
 </script>
