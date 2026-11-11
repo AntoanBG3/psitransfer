@@ -56,6 +56,11 @@ Speed (measured on wizard against the upstream build, see `tests/integration/wiz
 - tar.gz buckets that are compressed use gzip level 4 instead of 6: zlib by itself runs at
   76 against 45MB/s on wizard for 4% more bytes. Whole downloads of a 256MB text file varied
   too much between runs there (identical code: 3.4 to 8.3s) to put a number on the gain.
+- A view of a download page, or of the upload page by someone who has the upload password,
+  starts the storage disk if it was asleep (`lib/wakeStorage.js`: a small write and fsync
+  in the upload directory, at most once a minute), so the ~10s spin-up passes while the
+  visitor reads the page or picks files rather than during the first request that needs
+  the disk. Not measured, as it needs the disk asleep.
 - Upload chunks grow with the measured speed, from 5MB up to 50MB, so each takes ~20s
   (5MB chunks ran at 10MB/s through Cloudflare, 50MB at 18MB/s). Cloudflare's 100s origin
   timeout covers the whole streamed chunk (a 50MB chunk at 350KB/s got a 524), so fixed

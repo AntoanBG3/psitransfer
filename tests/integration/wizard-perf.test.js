@@ -302,6 +302,39 @@ test('large files are judged by their bytes, whatever they are called', async ()
   await new Promise(r => setTimeout(r, 200));
 });
 
+test('page views start the storage disk', async (t) => {
+  const wake = path.join(tmpDir, '.wake');
+  const { MIN_INTERVAL } = require('../../lib/wakeStorage');
+  const realNow = Date.now;
+  let clock = realNow() + 10 * MIN_INTERVAL;
+  Date.now = () => clock;
+  t.after(() => { Date.now = realNow; });
+  const stamp = async () => {
+    await new Promise(r => setTimeout(r, 100));
+    return fs.existsSync(wake) ? fs.readFileSync(wake, 'utf8') : null;
+  };
+
+  fs.rmSync(wake, { force: true });
+  // an unknown bucket and the error page do not
+  await request('GET', '/nosuchbucket');
+  assert.strictEqual(await stamp(), null);
+  // a download page does
+  await request('GET', '/zipsid');
+  assert.strictEqual(await stamp(), String(clock));
+
+  // with an upload password, only the right password does
+  const prev = config.uploadPass;
+  config.uploadPass = 'up';
+  t.after(() => { config.uploadPass = prev; });
+  const before = clock;
+  clock += 2 * MIN_INTERVAL;
+  await request('GET', '/');
+  await request('GET', '/config.json');
+  assert.strictEqual(await stamp(), String(before));
+  await request('GET', '/config.json', { 'x-passwd': 'up' });
+  assert.strictEqual(await stamp(), String(clock));
+});
+
 test('tar.gz packs a mostly-media bucket without compression and compresses the rest', async () => {
   const text = Buffer.from('compress me '.repeat(10000));
   await upload('tgzmedia', 'clip.mp4', text);
