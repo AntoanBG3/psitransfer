@@ -82,7 +82,11 @@
 </template>
 
 <script type="text/babel">
-  import { Encoder, Byte } from "@nuintun/qrcode";
+  // wizard: the QR encoder is a third of the upload bundle and only used after an upload,
+  // so it is fetched once the upload has finished. The click handler stays synchronous
+  // when it is already there, which keeps window.open inside the user gesture.
+  let qrLib = null;
+  const loadQr = () => import(/* webpackChunkName: "qrcode" */ "@nuintun/qrcode").then(m => (qrLib = m));
   import { mapState, mapGetters } from 'vuex';
 
   import Settings from './Upload/Settings.vue';
@@ -137,6 +141,7 @@
 
     watch: {
       state: function(val) {
+        if (val === 'uploaded' && !this.disableQrCode) loadQr().catch(() => {});
         if (val === 'uploaded' || val === 'uploadError') {
           const el = document.getElementById('uploadApp');
           if (!el || !el.scrollIntoView) return;
@@ -164,7 +169,8 @@
           }
         }
       },
-      showQrCode() {
+      async showQrCode() {
+        const { Encoder, Byte } = qrLib || await loadQr();
         const qrcode = new Encoder({level: 'H'}).encode(new Byte(this.shareUrl));
         const imgSrc = qrcode.toDataURL(7, 10);
         const data = imgSrc.substr(imgSrc.indexOf(',') + 1);

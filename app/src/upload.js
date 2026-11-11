@@ -1,5 +1,3 @@
-import "regenerator-runtime/runtime.js";
-
 import Vue from 'vue';
 import Upload from './Upload.vue';
 import store from './Upload/store.js';

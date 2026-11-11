@@ -23,8 +23,11 @@ module.exports = {
   },
   output: {
     path: path.resolve(__dirname, '../public/app'),
-    publicPath: '/app/',
-    filename: '[name].js'
+    // wizard: lazy chunks load from wherever the entry script came from, so they get the
+    // versioned, long-cached URL too
+    publicPath: 'auto',
+    filename: '[name].js',
+    chunkFilename: '[name].js'
   },
   optimization: {
     splitChunks: {
@@ -50,7 +53,9 @@ module.exports = {
             presets: [['@babel/preset-env', {
               modules: false,
               useBuiltIns: false,
-              targets: "last 2 versions, ie 11, not dead",
+              // wizard: browsers with native async/await and ES2020; the IE 11 build was a
+              // quarter larger and needed regenerator-runtime
+              targets: "chrome >= 87, edge >= 88, firefox >= 78, safari >= 14, ios >= 14",
             }]],
           }
         }

@@ -1,5 +1,4 @@
 import * as tus from "tus-js-client";
-import { v4 as uuid } from 'uuid';
 
 export function humanFileSize(fileSizeInBytes) {
   let i = -1;
@@ -30,7 +29,7 @@ function randomSid() {
     return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
   } catch (e) {
     // Fallback: keep a stable shape without extra deps
-    return uuid().replace(/-/g, '').slice(0, 12);
+    return Array.from({ length: 12 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
   }
 }
 
