@@ -5,7 +5,7 @@ This branch (`wizard`) is not meant to be merged upstream.
 
 ## What's different
 
-Mostly the look; the server, API and Vue logic are upstream's, with two fixes:
+Mostly the look and speed; the API and Vue logic are upstream's, with two fixes:
 
 - Download passwords outside ASCII (Cyrillic, Japanese, ...) work. Browsers can't put them
   in the `x-download-pass` header, so the download page sends them base64-encoded (UTF-8)
@@ -16,6 +16,26 @@ Mostly the look; the server, API and Vue logic are upstream's, with two fixes:
 - Icons spin and flip again. The webpack config drops Vue components' `<style>` blocks
   (upstream PR #315), so vue-awesome's icon CSS is restated in `styles.css`. PR #315 itself
   isn't taken because it would also bring back the Bootstrap-era component styles.
+
+Speed (measured on wizard against the upstream build, see `tests/integration/wizard-perf.test.js`):
+
+- Static files are served under `app/~<hash>/` and `assets/~<hash>/` (`lib/assetVersion.js`)
+  with a one-year `immutable` Cache-Control, so browsers and Cloudflare stop revalidating
+  them through the tunnel on every visit; a rebuild changes the hash. Upstream serves them
+  `max-age=0`, which Cloudflare does not cache at all.
+- The pages preload `lang.json`, `config.json` or the bucket list and the two fonts, so they
+  load in parallel with the scripts instead of after them (upload page 578 -> 360ms first
+  visit, 548 -> 227ms repeat, at 100ms per request).
+- No brute-force delay or argon2 run for requests that carry no password: a protected
+  bucket shows its password prompt in ~3ms instead of ~530ms. With a password, the
+  per-file hashes are checked in parallel.
+- Zip downloads store photos, videos and archives instead of deflating them; tar.gz skips
+  compression when most of the bucket is such files, and uses 1MB zlib chunks
+  (zip 11 -> 290MB/s, tar.gz 11 -> 480MB/s, CPU for the test set 43s -> 2.6s).
+- Uploads use 50MB tus chunks instead of 5MB (10 -> 18MB/s through Cloudflare, whose
+  request limit is 100MB; an interrupted chunk keeps its received bytes and resumes).
+  The server's request timeout is an hour so a slow uplink can finish a chunk, and idle
+  connections stay open past cloudflared's 90s pool.
 
 The look:
 
