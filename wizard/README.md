@@ -23,14 +23,39 @@ Speed (measured on wizard against the upstream build, see `tests/integration/wiz
   with a one-year `immutable` Cache-Control, so browsers and Cloudflare stop revalidating
   them through the tunnel on every visit; a rebuild changes the hash. Upstream serves them
   `max-age=0`, which Cloudflare does not cache at all.
-- The pages preload `lang.json`, `config.json` or the bucket list and the two fonts, so they
-  load in parallel with the scripts instead of after them (upload page 578 -> 360ms first
-  visit, 548 -> 227ms repeat, at 100ms per request).
+- The pages carry what their app would fetch first, as `PSITRANSFER_PRELOAD`: the
+  translations, and on the upload page the config (or just the fact that an upload password
+  is needed), on the download page the file list (or the fact that the bucket has a
+  password). The apps render without requesting `lang.json`, `config.json` or `<sid>.json`.
+  This replaces the `<link rel=preload as=fetch>` tags of the first speed pass, which
+  WebKit does not reuse for XHR (it fetched everything twice). At 80ms per request, medians
+  of five loads: upload page 386 -> 297ms first visit and 190 -> 118ms repeat in Chromium,
+  904 -> 298ms and 308 -> 124ms in WebKit; download page 288 -> 284ms / 192 -> 121ms in
+  Chromium, 391 -> 291ms / 200 -> 130ms in WebKit. The two fonts are still preloaded.
+- Static files are answered from memory with bodies compressed once at startup (brotli 11,
+  gzip 9) instead of on every request at brotli 4, and the bundles target browsers with
+  ES2020 instead of IE 11 (no regenerator-runtime; the QR encoder is a separate chunk that
+  loads when an upload has finished). The upload page's scripts and styles are 83.3KB ->
+  62.9KB on the wire, the download page's 54.7KB -> 45.2KB, and a file takes 0.15ms
+  instead of 1.2ms on the server.
+- The pages send their assets as a `Link` preload header as well. With Early Hints enabled
+  for the zone, Cloudflare answers a visit with them as a `103` before the page has come
+  back through the tunnel.
 - No brute-force delay or argon2 run for requests that carry no password: a protected
   bucket shows its password prompt in ~3ms instead of ~530ms.
 - Zip downloads store photos, videos and archives instead of deflating them; tar.gz skips
   compression when most of the bucket is such files, and uses 1MB zlib chunks
   (zip 11 -> 290MB/s, tar.gz 11 -> 480MB/s, CPU for the test set 43s -> 2.6s).
+- Files of 1MB and more whose extension is not on that list are judged by their bytes
+  (`lib/compressible.js`): four 64KB samples are deflated at level 1, and the file is
+  stored when that saves less than a tenth. On wizard (from RAM) a 256MB incompressible
+  `.bin` took 25.6s as a zip and 6.8s as a tar.gz, now 0.65s and 0.5s. A sample is a few
+  milliseconds of CPU plus four reads, about 50ms on a cold hard disk; zip samples each
+  file just before sending it, tar.gz needs one answer up front and samples at most the 16
+  largest files, stopping as soon as the rest cannot change it.
+- tar.gz buckets that are compressed use gzip level 4 instead of 6: zlib by itself runs at
+  76 against 45MB/s on wizard for 4% more bytes. Whole downloads of a 256MB text file varied
+  too much between runs there (identical code: 3.4 to 8.3s) to put a number on the gain.
 - Upload chunks grow with the measured speed, from 5MB up to 50MB, so each takes ~20s
   (5MB chunks ran at 10MB/s through Cloudflare, 50MB at 18MB/s). Cloudflare's 100s origin
   timeout covers the whole streamed chunk (a 50MB chunk at 350KB/s got a 524), so fixed
@@ -39,6 +64,11 @@ Speed (measured on wizard against the upstream build, see `tests/integration/wiz
   and idle connections stay open past cloudflared's 90s pool.
 - A wrong download password costs one argon2 check; a right one checks the other files'
   hashes in parallel.
+
+Tried and not kept, because they measured no gain: `stale-while-revalidate` on the upload
+page (browsers do not apply it to navigations); 1MB zlib chunks and other deflate levels for
+zip entries; changing the gzip level mid-stream by back-pressure (`zlib.params()` leaves the
+level unchanged in Node 26).
 
 The look:
 
