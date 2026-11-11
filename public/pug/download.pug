@@ -3,10 +3,13 @@ html(lang='en')
   head
     include partials/head
     include partials/head_custom
+    //- wizard: fetch the app's JSON in parallel with its scripts instead of after them
+    link(href='lang.json' rel='preload' as='fetch' crossorigin)
+    link(href=sid + '.json' rel='preload' as='fetch' crossorigin)
   body.page-download
     include partials/window
     +window('Transfer', 'Click a file to download it')
       #download
     include partials/footer
-    script(src='app/common.js')
-    script(src='app/download.js')
+    script(src=appUrl + '/common.js')
+    script(src=appUrl + '/download.js')

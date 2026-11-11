@@ -3,7 +3,7 @@ mixin window(title, status)
   main.window#main-window
     .title-bar
       .title-bar-text
-        img(src='assets/icon.svg' alt='' width='16' height='16')
+        img(src=assetsUrl + '/icon.svg' alt='' width='16' height='16')
         | #{title}
       .title-bar-controls
         button#help-button(type='button' aria-label='Help')
