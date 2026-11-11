@@ -118,11 +118,12 @@ test('a protected bucket asks for its password at once, wrong passwords stay slo
 
   const none = await timed(() => request('GET', '/protsid.json'));
   assert.strictEqual(none.res.status, 401);
-  assert.ok(none.ms < 300, `no-password answer took ${ none.ms }ms`);
 
   const wrong = await timed(() => request('GET', '/protsid.json', { 'x-download-pass': 'nope' }));
   assert.strictEqual(wrong.res.status, 401);
-  assert.ok(wrong.ms >= 450, `wrong-password answer took only ${ wrong.ms }ms`);
+  // the delay is a fixed 500ms timer; compare instead of using absolute bounds (shared CI runners)
+  assert.ok(wrong.ms >= 490, `wrong-password answer took only ${ wrong.ms }ms`);
+  assert.ok(none.ms < wrong.ms / 2, `no-password ${ none.ms }ms vs wrong-password ${ wrong.ms }ms`);
 
   const ok = await request('GET', '/protsid.json', { 'x-download-pass': 'secret' });
   assert.strictEqual(ok.status, 200);
@@ -143,11 +144,11 @@ test('config.json without an upload password answers 401 without the brute-force
 
   const none = await timed(() => request('GET', '/config.json'));
   assert.strictEqual(none.res.status, 401);
-  assert.ok(none.ms < 150, `took ${ none.ms }ms`);
 
   const wrong = await timed(() => request('GET', '/config.json', { 'x-passwd': 'nope' }));
   assert.strictEqual(wrong.res.status, 403);
-  assert.ok(wrong.ms >= 180, `took only ${ wrong.ms }ms`);
+  assert.ok(wrong.ms >= 190, `wrong password took only ${ wrong.ms }ms`);
+  assert.ok(none.ms < wrong.ms / 2, `no password ${ none.ms }ms vs wrong password ${ wrong.ms }ms`);
 
   const ok = await request('GET', '/config.json', { 'x-passwd': 'up' });
   assert.strictEqual(ok.status, 200);
