@@ -141,16 +141,27 @@ export default {
       if (onOnlineHandlerAttached) window.removeEventListener('online', onOnlineHandler);
 
       // all files finished: lock the bucket on success, show the error otherwise
-      const checkDone = () => {
+      const checkDone = async () => {
         if (!state.files.every(f => f.uploaded || f.error)) return;
         if (state.files.every(f => f.uploaded)) {
-          fetch(state.uploadURI + '/' + state.sid + '?lock=yes', { method: 'PATCH' });
-          commit('STATE', 'uploaded', { root: true });
+          const uploadPass = rootState.config.uploadPass;
+          try {
+            const res = await fetch(state.uploadURI + '/' + state.sid + '?lock=yes', {
+              method: 'PATCH',
+              headers: uploadPass ? { 'x-passwd': uploadPass } : {},
+            });
+            if (res.ok) return commit('STATE', 'uploaded', { root: true });
+          } catch {
+            // The files are already uploaded. Retry only the lock request.
+          }
+          commit('ERROR', 'Could not lock the bucket. Retry before sharing the link.', { root: true });
         } else {
-          commit('STATE', 'uploadError', { root: true });
           commit('ERROR', 'Upload failed.', { root: true });
         }
+        commit('STATE', 'uploadError', { root: true });
       };
+
+      if (state.files.length && state.files.every(f => f.uploaded)) return checkDone();
 
       // upload all files in parallel, skip the finished ones on retry
       state.files.forEach(async file => {
