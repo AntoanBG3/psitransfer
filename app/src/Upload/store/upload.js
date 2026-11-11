@@ -175,7 +175,8 @@ export default {
               "x-passwd": rootState.config.uploadPass
             },
             parallelUploads: 1,
-            chunkSize: 5000000,
+            // wizard: 50MB chunks: fewer round trips, 1.75x faster through Cloudflare (whose request limit is 100MB)
+            chunkSize: 50000000,
             endpoint: state.uploadURI,
             storeFingerprintForResuming: false,
             retryDelays: null,

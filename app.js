@@ -35,6 +35,16 @@ if(config.sslPort && config.sslKeyFile && config.sslCertFile) {
 }
 
 
+// wizard: a 50MB upload chunk on a slow uplink can outlast Node's default 5 minute
+// requestTimeout; and keep idle connections longer than cloudflared's 90s pool, so the
+// proxy reuses them instead of racing a close
+for (const srv of [server, httpsServer]) {
+  if (!srv) continue;
+  srv.requestTimeout = 60 * 60 * 1000;
+  srv.keepAliveTimeout = 120 * 1000;
+  srv.headersTimeout = 125 * 1000;
+}
+
 // graceful shutdown
 function shutdown() {
   console.log('PsiTransfer shutting down...');
