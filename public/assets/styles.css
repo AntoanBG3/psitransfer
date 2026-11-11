@@ -101,23 +101,22 @@ body[data-state=locked] .well { max-width: none; margin-bottom: 0; }
 body[data-state=loading] .window-body { min-height: 120px; }
 
 /* nothing to start over from on a fresh upload page */
-.page-upload[data-state=empty] .btn-new-session,
-.page-upload[data-state=loading] .btn-new-session { display: none; }
+
 #help-window .buttons { display: flex; justify-content: flex-end; margin-top: 12px; }
 #help-window .buttons button { min-width: 88px; min-height: 28px; }
 
 /* ---------- Bootstrap layout helpers ---------- */
 
-.row {
+/* every block in the window shares the same edges and one 12px gap */
+.upload-app, .download-app, .upload-app > div,
+.row, .col-xs-12, .col-sm-7, .col-sm-5 {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 12px;
-  margin-bottom: 12px;
+  min-width: 0;
 }
-.row:last-child { margin-bottom: 0; }
-.col-xs-12 { flex: 1 1 100%; min-width: 0; }
-.col-sm-7 { flex: 7 1 320px; min-width: 0; }
-.col-sm-5 { flex: 5 1 220px; min-width: 0; }
+.row { margin: 0; }
+.upload-app > *, .upload-app > div > *, .download-app > *, .row > *, .col-sm-7 > *, .col-sm-5 > * { margin: 0 !important; }
 
 .pull-right { float: right; }
 .pull-left { float: left; }
@@ -195,11 +194,13 @@ body[data-state=loading] .window-body { min-height: 120px; }
 .btn a, .btn a:visited { color: inherit; display: inline-flex; }
 
 /* new upload / refresh: a toolbar button above the content */
-.btn-new-session, .btn-admin-refresh {
-  display: flex;
-  width: max-content;
-  margin: 0 0 12px auto;
-}
+.page-admin .btn-admin-refresh { display: none !important; }
+.page-admin tfoot .wizard-copy { min-height: 24px; }
+/* "New upload" is shown as a copy in the success box or the Files title bar (wizard.js) */
+.page-upload .btn-new-session, .page-download .btn-new-session { display: none !important; }
+/* likewise "Add files" moves to the Files title bar */
+.page-upload .upload-files .panel-body > .text-right { display: none; }
+.panel-heading > .wizard-copy { margin: -2px -1px -2px 8px; float: right; min-height: 22px; }
 
 /* ---------- panels: nested windows; the heading is the title bar ---------- */
 
@@ -207,7 +208,7 @@ body[data-state=loading] .window-body { min-height: 120px; }
   background: var(--face);
   box-shadow: var(--raised);
   padding: 3px;
-  margin-bottom: 12px;
+  margin: 0;
 }
 .panel-heading {
   display: flow-root;
@@ -445,7 +446,7 @@ td.file-icon { width: 56px; text-align: center; color: var(--sel); }
   word-break: break-all;
 }
 .upload-app .share-link .title { font-weight: bold; margin-right: 4px; }
-.upload-app .overall-process .col-xs-12 { display: flex; align-items: center; gap: 8px; }
+.upload-app .overall-process .col-xs-12 { flex-direction: row; align-items: center; gap: 8px; }
 .upload-app .overall-process .col-xs-12 > .fa-icon { float: none !important; margin: 0 !important; flex: none; }
 .upload-app .overall-process .progress { flex: 1; }
 .upload-success-btns { margin-left: 8px; }
@@ -462,7 +463,7 @@ td.file-icon { width: 56px; text-align: center; color: var(--sel); }
 }
 .upload-files .empty-files-big-plus a { color: #222; text-decoration: none; }
 .upload-files .empty-files-big-plus .fa-icon { color: var(--shadow); }
-.upload-files .table { margin-bottom: 8px; }
+.upload-files .table { margin-bottom: 0; }
 .upload-files .table:not(:has(tr)) { display: none; }
 .upload-files td.btns { width: 36px; text-align: center; }
 .upload-files td.btns a { color: #222; display: inline-flex; padding: 6px; }
@@ -526,3 +527,52 @@ tbody.expanded .bucket td { font-weight: bold; }
 .page-admin .download-app > div { overflow-x: auto; }
 .page-admin .table td, .page-admin .table th { white-space: nowrap; }
 .page-admin .table td .fa-icon { float: none !important; margin-left: 6px; }
+
+/* Settings: retention and password side by side, upload button under them */
+.upload-app .col-sm-5 .panel-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+.upload-app .col-sm-5 .panel-body > * { flex: 1 1 200px; min-width: 0; margin: 0; }
+.upload-app .col-sm-5 .panel-body::after { display: none; }
+.page-upload .col-sm-5 > .text-right { display: none !important; }
+/* the Upload / Retry button sits at the end of the Settings row (wizard.js) */
+#wizard-upload {
+  flex: none;
+  min-width: 96px;
+  min-height: 28px;
+  font-weight: bold;
+  text-transform: capitalize;
+  outline: 1px solid #000;
+  outline-offset: -1px;
+}
+/* the pixel font's "1" leaves almost no gap before the next word ("1 Week") */
+select { word-spacing: 2px; }
+
+/* the "not found" page is a message box */
+.page-error #main-window { max-width: 420px; }
+.page-error .window-body > p:last-child { margin: 0; }
+
+/* the dropdown button fills the field's height, drawn like 98.css's own button */
+select, select.form-control {
+  padding-right: 24px;
+  background:
+    var(--select-arrow) no-repeat right 8px center / 7px 4px,
+    linear-gradient(var(--dark), var(--dark)) no-repeat right 2px top 2px / 1px calc(100% - 4px),
+    linear-gradient(var(--dark), var(--dark)) no-repeat right 2px bottom 2px / 18px 1px,
+    linear-gradient(var(--shadow), var(--shadow)) no-repeat right 3px top 3px / 1px calc(100% - 6px),
+    linear-gradient(var(--shadow), var(--shadow)) no-repeat right 3px bottom 3px / 16px 1px,
+    linear-gradient(var(--light), var(--light)) no-repeat right 19px top 2px / 1px calc(100% - 4px),
+    linear-gradient(var(--light), var(--light)) no-repeat right 2px top 2px / 18px 1px,
+    linear-gradient(var(--hilite), var(--hilite)) no-repeat right 18px top 3px / 1px calc(100% - 6px),
+    linear-gradient(var(--hilite), var(--hilite)) no-repeat right 3px top 3px / 16px 1px,
+    linear-gradient(var(--face), var(--face)) no-repeat right 2px center / 18px calc(100% - 4px),
+    var(--field);
+  --select-arrow: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 0h7v1H6v1H5v1H4v1H3V3H2V2H1V1H0z' fill='%23000'/%3E%3C/svg%3E");
+}
+select:disabled {
+  --select-arrow: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 0h7v1H6v1H5v1H4v1H3V3H2V2H1V1H0z' fill='%23808080'/%3E%3C/svg%3E");
+  background-color: var(--face);
+}
