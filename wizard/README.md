@@ -5,7 +5,8 @@ This branch (`wizard`) is not meant to be merged upstream.
 
 ## What's different
 
-Mostly the look and speed; the API and Vue logic are upstream's, with two fixes:
+Mostly the look and speed; the API and Vue logic are upstream's, with two fixes and link
+names:
 
 - Download passwords outside ASCII (Cyrillic, Japanese, ...) work. Browsers can't put them
   in the `x-download-pass` header, so the download page sends them base64-encoded (UTF-8)
@@ -16,6 +17,19 @@ Mostly the look and speed; the API and Vue logic are upstream's, with two fixes:
 - Icons spin and flip again. The webpack config drops Vue components' `<style>` blocks
   (upstream PR #315), so vue-awesome's icon CSS is restated in `styles.css`. PR #315 itself
   isn't taken because it would also bring back the Bootstrap-era component styles.
+- Link names, for links that are said aloud. The upload page has an optional "Link name"
+  field: `snimki-more` gives `<host>/snimki-more` instead of 12 random hex characters. The
+  bucket id is the name without hyphens (`snimkimore`), and the download route redirects
+  any spelling that differs only in case, hyphens, underscores or spaces to it. A name can
+  be guessed, so the server takes a bucket id that is not random-shaped only with a
+  download password and a retention of one-time or up to a day, only as lowercase latin
+  letters and digits (not `admin`, `files`, `app`, `assets`), and lets further files join
+  it only with the same password, which is how a name already in use is refused. With a
+  name in the field the page disables the longer retentions and uses the longest allowed
+  one; the earlier choice is back when the name is removed. The page asks `<sid>.json` first to report a taken
+  name while it can still be changed. `?sid=` in the address fills the field. Upstream
+  accepts any `?sid=` with any retention and no password; here that is a 400.
+  Tests: `tests/integration/link-name.test.js`, `tests/unit/link-name*.test.js`.
 
 Speed (measured on wizard against the upstream build, see `tests/integration/wizard-perf.test.js`):
 

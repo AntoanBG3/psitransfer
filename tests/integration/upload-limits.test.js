@@ -70,7 +70,7 @@ after(async () => {
 });
 
 test('upload in multiple chunks completes', async () => {
-  const fid = await create('limitchunks', 200);
+  const fid = await create('11a100000001', 200);
   const first = await patch(fid, 0, Buffer.alloc(120, 'a'));
   assert.strictEqual(first.status, 204);
   assert.strictEqual(first.headers['upload-offset'], '120');
@@ -83,14 +83,14 @@ test('upload in multiple chunks completes', async () => {
 });
 
 test('body larger than declared Content-Length is rejected before writing', async () => {
-  const fid = await create('limitcontentlength', 100);
+  const fid = await create('11a100000002', 100);
   const res = await patch(fid, 0, Buffer.alloc(5000));
   assert.strictEqual(res.status, 413);
   assert.strictEqual(sizeOnDisk(fid), 0);
 });
 
 test('chunked body exceeding Upload-Length is cut off', async () => {
-  const fid = await create('limitchunked', 100);
+  const fid = await create('11a100000003', 100);
   const chunks = Array.from({ length: 50 }, () => Buffer.alloc(1000));
   // the server either answers 413 or resets the connection
   await patch(fid, 0, chunks).then(
@@ -106,13 +106,13 @@ test('chunked body exceeding Upload-Length is cut off', async () => {
 });
 
 test('wrong Upload-Offset is rejected', async () => {
-  const fid = await create('limitoffset', 100);
+  const fid = await create('11a100000004', 100);
   assert.strictEqual((await patch(fid, 50, Buffer.alloc(10))).status, 409);
   assert.strictEqual(sizeOnDisk(fid), 0);
 });
 
 test('concurrent PATCH on the same upload is rejected', async () => {
-  const fid = await create('limitconcurrent', 100);
+  const fid = await create('11a100000005', 100);
   // keep a first PATCH open
   const req = http.request({
     hostname: '127.0.0.1', port, method: 'PATCH', agent: false,
@@ -128,7 +128,7 @@ test('concurrent PATCH on the same upload is rejected', async () => {
 });
 
 test('aborted PATCH keeps received bytes and can be resumed', async () => {
-  const fid = await create('limitresume', 100);
+  const fid = await create('11a100000006', 100);
   const req = http.request({
     hostname: '127.0.0.1', port, method: 'PATCH', agent: false,
     path: `/files/${ encodeURIComponent(fid) }`,

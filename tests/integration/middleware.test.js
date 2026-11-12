@@ -142,7 +142,7 @@ test('PATCH on a running upload of a locked bucket is rejected', async (t) => {
   const port = server.address().port;
 
   try {
-    const sid = 'lockedbucket';
+    const sid = '10c0ed000001';
     const created = await request(port, 'POST', '/files/', {
       ...TUS,
       'Upload-Length': '10',
@@ -163,7 +163,7 @@ test('PATCH on a running upload of a locked bucket is rejected', async (t) => {
     assert.match(res.body, /Bucket locked/);
   } finally {
     await new Promise((resolve) => server.close(resolve));
-    fs.rmSync(path.join(tmpDir, 'lockedbucket'), { recursive: true, force: true });
+    fs.rmSync(path.join(tmpDir, '10c0ed000001'), { recursive: true, force: true });
   }
 });
 
@@ -175,7 +175,7 @@ test('with an upload password, the bucket lock needs it like every other upload 
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const port = server.address().port;
   const AUTH = { ...TUS, 'x-passwd': 'up' };
-  const sid = 'lockpassbucket';
+  const sid = '10c0ed000002';
   const create = () => request(port, 'POST', '/files/', {
     ...AUTH,
     'Upload-Length': '10',

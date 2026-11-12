@@ -547,6 +547,9 @@ tbody.expanded .bucket td { font-weight: bold; }
 }
 .upload-app .col-sm-5 .panel-body > * { flex: 1 1 200px; min-width: 0; margin: 0; }
 .upload-app .col-sm-5 .panel-body::after { display: none; }
+/* the link a name gives, on a row of its own under the fields and the button */
+.upload-app .col-sm-5 .panel-body > .link-name-hint { flex: 1 1 100%; order: 1; overflow-wrap: anywhere; }
+.link-name-hint > span { margin-right: 8px; }
 .page-upload .col-sm-5 > .text-right { display: none !important; }
 /* the Upload / Retry button sits at the end of the Settings row (wizard.js) */
 #wizard-upload {

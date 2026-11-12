@@ -72,7 +72,7 @@
         .col-sm-5
           settings
           .text-right(v-show='showUploadBtn')
-            button#uploadBtn.btn.btn-lg.btn-success(@click="$store.dispatch('upload/upload')")
+            button#uploadBtn.btn.btn-lg.btn-success(@click="$store.dispatch('upload/start')")
               icon.fa-fw(name="upload")
               |  {{ $root.lang.upload }}
           .text-right(v-show="state === 'uploadError'")
@@ -122,7 +122,8 @@
       ...mapState('config', ['uploadPassRequired', 'uploadPass', 'requireBucketPassword', 'disableQrCode']),
       ...mapState('upload', ['sid', 'files', 'password']),
       ...mapGetters(['error', 'disabled']),
-      ...mapGetters('upload', ['percentUploaded', 'shareUrl', 'bucketSize', 'bytesUploaded']),
+      ...mapGetters('upload', ['percentUploaded', 'shareUrl', 'bucketSize', 'bytesUploaded',
+        'passwordRequired', 'linkNameError']),
       mailLnk: function() {
         return this.$store.state.config
           && this.$store.state.config.mailTemplate
@@ -135,7 +136,8 @@
         return this.files.length
           && !this.disabled
           && !this.files.some(file => file.error)
-          && (this.requireBucketPassword && this.password || !this.requireBucketPassword)
+          && (this.password || !this.passwordRequired)
+          && !this.linkNameError
       }
     },
 

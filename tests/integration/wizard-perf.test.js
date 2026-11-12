@@ -192,8 +192,8 @@ test('the upload page carries translations and config', async (t) => {
 
 test('the download page carries its file list, unless the bucket has a password', async () => {
   const comment = '</script><script>alert(1)</script>\u2028';
-  await upload('preloadsid', 'a.txt', Buffer.from('a'), null, { comment });
-  const page = await request('GET', '/preloadsid');
+  await upload('9e7f00000001', 'a.txt', Buffer.from('a'), null, { comment });
+  const page = await request('GET', '/9e7f00000001');
   assert.strictEqual(page.status, 200);
   assert.match(page.headers['cache-control'], /no-store/);
   assert.match(page.headers.link, /\/download\.js>; rel=preload; as=script$/);
@@ -202,7 +202,7 @@ test('the download page carries its file list, unless the bucket has a password'
   assert.strictEqual(html.match(/<\/script>/g).length, html.match(/<script/g).length);
   const preload = preloadOf(html);
   assert.ok(preload.lang.files);
-  assert.deepStrictEqual(preload.bucket, JSON.parse((await request('GET', '/preloadsid.json')).body));
+  assert.deepStrictEqual(preload.bucket, JSON.parse((await request('GET', '/9e7f00000001.json')).body));
   assert.strictEqual(preload.bucket.items[0].metadata.comment, comment);
   assert.ok(!html.includes('\u2028'));
 
@@ -231,10 +231,10 @@ test('a protected bucket asks for its password at once, wrong passwords stay slo
 });
 
 test('a bucket whose files have different passwords still needs the right one for each', async () => {
-  await upload('mixsid', 'a.txt', Buffer.from('a'), 'one');
-  await upload('mixsid', 'b.txt', Buffer.from('b'), 'two');
-  assert.strictEqual((await request('GET', '/mixsid.json', { 'x-download-pass': 'one' })).status, 401);
-  assert.strictEqual((await request('GET', '/mixsid.json', { 'x-download-pass': 'two' })).status, 401);
+  await upload('9e7f00000002', 'a.txt', Buffer.from('a'), 'one');
+  await upload('9e7f00000002', 'b.txt', Buffer.from('b'), 'two');
+  assert.strictEqual((await request('GET', '/9e7f00000002.json', { 'x-download-pass': 'one' })).status, 401);
+  assert.strictEqual((await request('GET', '/9e7f00000002.json', { 'x-download-pass': 'two' })).status, 401);
 });
 
 test('config.json without an upload password answers 401 without the brute-force delay', async (t) => {
@@ -269,10 +269,10 @@ function zipEntries(buf) {
 
 test('zip downloads store already-compressed files and deflate the rest', async () => {
   const text = Buffer.from('compress me '.repeat(1000));
-  await upload('zipsid', 'photo.JPG', text);
-  await upload('zipsid', 'notes.txt', text);
-  const list = JSON.parse((await request('GET', '/zipsid.json')).body);
-  const zip = await request('GET', `/files/zipsid++${ list.archiveToken }.zip`);
+  await upload('9e7f00000003', 'photo.JPG', text);
+  await upload('9e7f00000003', 'notes.txt', text);
+  const list = JSON.parse((await request('GET', '/9e7f00000003.json')).body);
+  const zip = await request('GET', `/files/9e7f00000003++${ list.archiveToken }.zip`);
   assert.strictEqual(zip.status, 200);
   assert.deepStrictEqual(zipEntries(zip.body), { 'photo.JPG': 0, 'notes.txt': 8 });
   // let the download's lastDownload write finish before the temp dir goes
@@ -282,18 +282,18 @@ test('zip downloads store already-compressed files and deflate the rest', async 
 test('large files are judged by their bytes, whatever they are called', async () => {
   const packed = require('crypto').randomBytes(2 << 20);
   const text = Buffer.from('compress me '.repeat(200000));
-  await upload('sniffzip', 'backup.bin', packed);
-  await upload('sniffzip', 'dump.bin', text);
-  const list = JSON.parse((await request('GET', '/sniffzip.json')).body);
-  const zip = await request('GET', `/files/sniffzip++${ list.archiveToken }.zip`);
+  await upload('9e7f00000004', 'backup.bin', packed);
+  await upload('9e7f00000004', 'dump.bin', text);
+  const list = JSON.parse((await request('GET', '/9e7f00000004.json')).body);
+  const zip = await request('GET', `/files/9e7f00000004++${ list.archiveToken }.zip`);
   assert.strictEqual(zip.status, 200);
   assert.deepStrictEqual(zipEntries(zip.body.subarray(0, 100)), { 'backup.bin': 0 });
   assert.ok(zip.body.includes(packed), 'the packed file is stored as-is');
   assert.ok(zip.body.length < packed.length + text.length / 10, 'the text file is deflated');
 
-  await upload('snifftgz', 'backup.bin', packed);
-  const tlist = JSON.parse((await request('GET', '/snifftgz.json')).body);
-  const tgz = await request('GET', `/files/snifftgz++${ tlist.archiveToken }.tar.gz`);
+  await upload('9e7f00000005', 'backup.bin', packed);
+  const tlist = JSON.parse((await request('GET', '/9e7f00000005.json')).body);
+  const tgz = await request('GET', `/files/9e7f00000005++${ tlist.archiveToken }.tar.gz`);
   assert.strictEqual(tgz.status, 200);
   // level 0 writes stored blocks: 5 bytes of header per 64KB, no deflate attempt
   assert.ok(tgz.body.length > packed.length, 'a bucket of packed data is not deflated again');
@@ -319,7 +319,7 @@ test('page views start the storage disk', async (t) => {
   await request('GET', '/nosuchbucket');
   assert.strictEqual(await stamp(), null);
   // a download page does
-  await request('GET', '/zipsid');
+  await request('GET', '/9e7f00000003');
   assert.strictEqual(await stamp(), String(clock));
 
   // with an upload password, only the right password does
@@ -337,9 +337,9 @@ test('page views start the storage disk', async (t) => {
 
 test('tar.gz packs a mostly-media bucket without compression and compresses the rest', async () => {
   const text = Buffer.from('compress me '.repeat(10000));
-  await upload('tgzmedia', 'clip.mp4', text);
-  await upload('tgztext', 'notes.txt', text);
-  for (const [sid, stored] of [['tgzmedia', true], ['tgztext', false]]) {
+  await upload('9e7f00000006', 'clip.mp4', text);
+  await upload('9e7f00000007', 'notes.txt', text);
+  for (const [sid, stored] of [['9e7f00000006', true], ['9e7f00000007', false]]) {
     const list = JSON.parse((await request('GET', `/${ sid }.json`)).body);
     const tgz = await request('GET', `/files/${ sid }++${ list.archiveToken }.tar.gz`);
     assert.strictEqual(tgz.status, 200);

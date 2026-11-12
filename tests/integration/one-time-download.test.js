@@ -81,7 +81,7 @@ after(async () => {
 
 test('parallel downloads of a one-time file deliver it exactly once', async () => {
   const content = Buffer.alloc(1024 * 1024, 'a');
-  const fid = await upload('onetimeparallel', content);
+  const fid = await upload('0e7100000001', content);
 
   const results = await Promise.all(
     Array.from({ length: PARALLEL }, () => request('GET', `/files/${ fid }`))
@@ -98,7 +98,7 @@ test('parallel downloads of a one-time file deliver it exactly once', async () =
 });
 
 test('parallel archive downloads of a one-time bucket deliver it exactly once', async () => {
-  const sid = 'onetimearchive';
+  const sid = '0e7100000002';
   const fids = [
     await upload(sid, Buffer.alloc(512 * 1024, 'a')),
     await upload(sid, Buffer.alloc(512 * 1024, 'b')),
@@ -119,7 +119,7 @@ test('parallel archive downloads of a one-time bucket deliver it exactly once', 
 });
 
 test('archive download is refused while a one-time file is being downloaded', async () => {
-  const sid = 'onetimemixed';
+  const sid = '0e7100000003';
   const fids = [
     await upload(sid, Buffer.alloc(32 * 1024 * 1024, 'a')),
     await upload(sid, Buffer.from('permanent'), '3600'),
@@ -146,7 +146,7 @@ test('archive download is refused while a one-time file is being downloaded', as
 
 test('aborted download releases the one-time file', async () => {
   const content = Buffer.alloc(32 * 1024 * 1024, 'a');
-  const fid = await upload('onetimeabort', content);
+  const fid = await upload('0e7100000004', content);
 
   await new Promise((resolve, reject) => {
     const req = http.get({ hostname: '127.0.0.1', port, path: `/files/${ fid }`, agent: false }, (res) => {
@@ -167,7 +167,7 @@ test('aborted download releases the one-time file', async () => {
 
 test('HEAD does not consume a one-time file', async () => {
   const content = Buffer.from('head request');
-  const fid = await upload('onetimehead', content);
+  const fid = await upload('0e7100000005', content);
 
   const head = await request('HEAD', `/files/${ fid }`);
   assert.strictEqual(head.status, 200);
@@ -182,7 +182,7 @@ test('HEAD does not consume a one-time file', async () => {
 });
 
 test('completed range request consumes a one-time file', async () => {
-  const fid = await upload('onetimerange', Buffer.from('0123456789abcdef'));
+  const fid = await upload('0e7100000006', Buffer.from('0123456789abcdef'));
 
   const res = await request('GET', `/files/${ fid }`, { Range: 'bytes=0-9' });
   assert.strictEqual(res.status, 206);

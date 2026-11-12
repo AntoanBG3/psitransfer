@@ -55,4 +55,8 @@ module.exports = {
     "4838400": "8 Weeks"
   },
   uploadPassword: "Password for uploading",
+  linkName: "Link name",
+  linkNameHint: "A link with a name needs a password and is kept for one day at most.",
+  linkNameTaken: "This name is already in use.",
+  linkNameReserved: "This name cannot be used.",
 }

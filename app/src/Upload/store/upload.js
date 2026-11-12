@@ -1,4 +1,5 @@
 import * as tus from "tus-js-client";
+import { cleanLinkName, linkNameSid, isReservedLinkName, linkNameRetention } from "../../common/linkName";
 
 export function humanFileSize(fileSizeInBytes) {
   let i = -1;
@@ -21,6 +22,8 @@ const CHUNK_SECONDS = 20;
 
 let onOnlineHandler = null;
 let onOnlineHandlerAttached = false;
+// wizard: true while the upload button's link name check is on its way
+let starting = false;
 
 function randomSid() {
   try {
@@ -33,15 +36,22 @@ function randomSid() {
   }
 }
 
-function getSid() {
-  // support setting an explicit SID by location search param
+// wizard: ?sid= in the address still sets the bucket id. One shaped like the random ids is
+// used as it is, anything else fills the link name field.
+function sidParam() {
   const match = document.location.search.match(/sid=([^&]+)/);
-  if (match) {
+  if (!match) return '';
+  try {
+    return decodeURIComponent(match[1]);
+  } catch (e) {
     return match[1];
-  } else {
-    return randomSid();
   }
 }
+
+const param = sidParam();
+const paramIsRandom = /^[0-9a-f]{12}$/.test(param);
+const initialRandomSid = paramIsRandom ? param : randomSid();
+const initialLinkName = paramIsRandom ? '' : cleanLinkName(param);
 
 export default {
   namespaced: true,
@@ -50,13 +60,35 @@ export default {
     retention: null,
     password: '',
     files: [],
-    sid: getSid(),
+    // wizard: a name for the link that can be said aloud; its bucket id replaces the random one
+    linkName: initialLinkName,
+    linkNameTaken: false,
+    randomSid: initialRandomSid,
+    sid: linkNameSid(initialLinkName) || initialRandomSid,
     uploadURI: (window.PSITRANSFER_UPLOAD_PATH || '/') + 'files',
   },
 
   getters: {
     shareUrl: state => {
-      return document.head.getElementsByTagName('base')[0].href + state.sid;
+      // the name keeps its hyphens in the link, the server leads it to the bucket
+      return document.head.getElementsByTagName('base')[0].href
+        + (state.linkName.replace(/-$/, '') || state.sid);
+    },
+    // what is sent with the files: the chosen retention, for a named link a day at most.
+    // The choice itself is kept, so it is back when the name is removed.
+    effectiveRetention: (state, getters, rootState) => {
+      if (!state.linkName || !rootState.config.retentions) return state.retention;
+      return linkNameRetention(rootState.config.retentions, state.retention);
+    },
+    // a named link can be guessed, so the server only takes it with a password
+    passwordRequired: (state, getters, rootState) => {
+      return !!(rootState.config.requireBucketPassword || state.linkName);
+    },
+    linkNameError: (state, getters, rootState) => {
+      if (!state.linkName) return false;
+      if (isReservedLinkName(state.linkName)) return rootState.lang.linkNameReserved;
+      if (state.linkNameTaken) return rootState.lang.linkNameTaken;
+      return false;
     },
     percentUploaded: (state, getters) => {
       return Math.min(
@@ -85,6 +117,14 @@ export default {
     PASSWORD(state, pwd) {
       state.password = pwd;
     },
+    LINK_NAME(state, name) {
+      state.linkName = cleanLinkName(name);
+      state.linkNameTaken = false;
+      state.sid = linkNameSid(state.linkName) || state.randomSid;
+    },
+    LINK_NAME_TAKEN(state) {
+      state.linkNameTaken = true;
+    },
     ADD_FILE(state, file) {
       state.files.splice(0, 0, file);
     },
@@ -100,7 +140,9 @@ export default {
     NEW_SESSION(state) {
       state.password = '';
       state.files.splice(0, state.files.length);
-      state.sid = randomSid();
+      state.linkName = '';
+      state.linkNameTaken = false;
+      state.sid = state.randomSid = randomSid();
     },
   },
 
@@ -134,7 +176,21 @@ export default {
       commit('REMOVE_FILE', file);
     },
 
-    upload({ commit, dispatch, state, rootState }) {
+    // wizard: the upload button. A link name is checked first, so a name somebody else
+    // has is reported while it can still be changed (404: no such bucket).
+    async start({ commit, dispatch, state }) {
+      // a second click while the name is being checked must not start the upload twice
+      if (starting) return;
+      if (state.linkName) {
+        starting = true;
+        const res = await fetch(state.sid + '.json').catch(() => null);
+        starting = false;
+        if (res && res.status !== 404) return commit('LINK_NAME_TAKEN');
+      }
+      return dispatch('upload');
+    },
+
+    upload({ commit, dispatch, state, getters, rootState }) {
       commit('STATE', 'uploading', { root: true });
       commit('ERROR', '', { root: true });
 
@@ -177,7 +233,7 @@ export default {
             uploadUrl: file._uploadUrl,
             metadata: {
               sid: state.sid,
-              retention: state.retention,
+              retention: getters.effectiveRetention,
               password: state.password,
               name: file.name,
               comment: file.comment,
