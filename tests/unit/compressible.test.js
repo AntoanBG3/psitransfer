@@ -98,3 +98,9 @@ test('sampling is capped for buckets of many files, the rest are taken to be ali
   const mixed = Array.from({ length: 400 }, (_, i) => ({ name: `part${ i }.dat`, file: i % 4 ? `text${ i }` : `packed${ i }`, size: 30 * MB }));
   assert.strictEqual(await mostlyCompressed(mixed, sampler()), false);
 });
+
+test('tar.gz stores the bucket only above half its bytes', async () => {
+  const text = { name: 'notes.txt', size: 1000 };
+  assert.equal(await mostlyCompressed([text, { name: 'photo.jpg', size: 1000 }]), false);
+  assert.equal(await mostlyCompressed([text, { name: 'photo.jpg', size: 1001 }]), true);
+});

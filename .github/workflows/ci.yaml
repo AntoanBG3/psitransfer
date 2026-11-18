@@ -54,6 +54,10 @@ jobs:
         working-directory: app
         run: npm ci
 
+      - name: Test frontend
+        working-directory: app
+        run: npm test
+
       - name: Build
         working-directory: app
         run: npm run build

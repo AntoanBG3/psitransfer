@@ -8,7 +8,7 @@ COPY app/package.json app/package-lock.json ./
 RUN npm ci
 
 COPY app ./
-RUN npm run build
+RUN npm test && npm run build
 
 
 FROM node:26-alpine

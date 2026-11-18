@@ -76,13 +76,12 @@ Speed (measured on wizard against the upstream build, see `tests/integration/wiz
   visitor reads the page or picks files rather than during the first request that needs
   the disk. Not measured, as it needs the disk asleep.
 - Upload chunks grow with the measured speed, from 5MB up to 50MB, so each takes ~20s
-  (5MB chunks ran at 10MB/s through Cloudflare, 50MB at 18MB/s). Cloudflare's 100s origin
-  timeout covers the whole streamed chunk (a 50MB chunk at 350KB/s got a 524), so fixed
-  big chunks would fail on slow uplinks; a failed chunk halves the size, and its received
-  bytes are kept. The server's request timeout is an hour (LAN uploads skip Cloudflare),
-  and idle connections stay open past cloudflared's 90s pool.
-- A wrong download password costs one argon2 check; a right one checks the other files'
-  hashes in parallel.
+  (5MB chunks ran at 10MB/s through Cloudflare, 50MB at 18MB/s). A proxy 413 on
+  a larger chunk lowers the ceiling for the rest of that file. Creation-time file
+  and bucket limits remain terminal. Completed uploads become shareable after
+  the server confirms the bucket lock. Retry repeats a failed lock without resending files.
+- A missing download password opens the prompt immediately. Supplied passwords
+  are verified one file at a time, stopping at the first mismatch.
 
 Tried and not kept, because they measured no gain: `stale-while-revalidate` on the upload
 page (browsers do not apply it to navigations); 1MB zlib chunks and other deflate levels for

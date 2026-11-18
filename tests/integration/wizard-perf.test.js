@@ -84,6 +84,9 @@ test('pages link versioned assets, which are cached for a year', async () => {
   const m = html.match(/assets\/~([0-9a-f]{12})\/98\/98\.css/);
   assert.ok(m, 'stylesheet URL carries the asset version');
   const v = m[1];
+  const missing = await request('GET', `/assets/~${v}/missing.css`);
+  assert.strictEqual(missing.status, 404);
+  assert.doesNotMatch(missing.headers['cache-control'] || '', /immutable/);
   assert.match(html, new RegExp(`app/~${ v }/common\\.js`));
   assert.match(html, new RegExp(`assets/~${ v }/98/ms_sans_serif\\.woff2" rel="preload" as="font"`));
 

@@ -5,6 +5,7 @@
   "author": "Christoph Wiechert <wio@psitrax.de>",
   "private": true,
   "scripts": {
+    "test": "node --test test/*.test.mjs",
     "dev": "cross-env NODE_ENV=development webpack-dev-server",
     "build": "cross-env NODE_ENV=production webpack",
     "analyze": "cross-env ANALYZE=true npm run build"
